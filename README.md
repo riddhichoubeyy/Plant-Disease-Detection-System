@@ -1,5 +1,4 @@
 # Plant-Disease-Detection-System
-# Plant Disease Detection System
 
 Deep learning-based plant disease detection using CNN models and leaf images.
 
