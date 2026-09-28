@@ -1,0 +1,52 @@
+# ── Python ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+
+# ── Virtual environments ──────────────────────────────
+venv/
+env/
+.venv/
+ENV/
+
+# ── Jupyter ────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Trained model weights / checkpoints (large binaries) ─
+*.keras
+*.h5
+*.hdf5
+*.pb
+*.tflite
+*.onnx
+best_model.keras
+final_model.keras
+Models/
+
+
+# ── Datasets ───────────────────────────────────────────
+data/
+# ── Kaggle API credentials — NEVER commit this ────────
+kaggle.json
+
+# ── Flask ──────────────────────────────────────────────
+instance/
+.flaskenv
+
+# ── Environment variables / secrets ───────────────────
+.env
+*.env
+
+# ── OS junk ────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+
+# ── Logs ───────────────────────────────────────────────
+*.log

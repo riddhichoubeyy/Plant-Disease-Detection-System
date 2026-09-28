@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PlantScan AI — Disease Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <path d="M16 2C16 2 6 9 6 18C6 23.5 10.5 28 16 28C21.5 28 26 23.5 26 18C26 9 16 2 16 2Z" fill="#4a7c59"/>
+        <path d="M16 10C16 10 10 15 10 20C10 23.3 12.7 26 16 26" stroke="#a8d5b5" stroke-width="1.5" fill="none"/>
+        <line x1="16" y1="28" x2="16" y2="30" stroke="#4a7c59" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span class="logo-text">PlantScan <em>AI</em></span>
+    </div>
+    <nav class="header-meta">
+      <span class="badge" id="activeModelBadge">EfficientNetB0</span>
+      <span class="badge badge-outline">Beta v1.0</span>
+    </nav>
+  </header>
+
+  <!-- ── Hero ───────────────────────────────────────────── -->
+  <section class="hero">
+    <p class="hero-eyebrow">AI-Powered Diagnosis</p>
+    <h1 class="hero-title">Detect Plant Disease<br><span>Before It Spreads</span></h1>
+    <p class="hero-sub">Upload a leaf image. Our model identifies the disease and gives you an actionable treatment plan in seconds.</p>
+  </section>
+
+  <!-- ── Main Layout ────────────────────────────────────── -->
+  <main class="app-layout">
+
+    <!-- Left: Upload Panel -->
+    <section class="panel panel-upload" id="uploadPanel">
+      <div class="panel-label">01 — Upload Image</div>
+
+      <!-- Model Selector -->
+      <div class="model-select-wrap">
+        <label for="modelSelect" class="model-select-label">Model</label>
+        <div class="model-select-control">
+          <select id="modelSelect">
+            {% for opt in model_options %}
+            <option value="{{ opt.key }}" {% if opt.key == default_model %}selected{% endif %}>
+              {{ opt.name }} — {{ opt.accuracy }} accuracy
+            </option>
+            {% endfor %}
+          </select>
+          <svg class="select-caret" width="12" height="8" viewBox="0 0 12 8" fill="none">
+            <path d="M1 1.5L6 6.5L11 1.5" stroke="#a8d5b5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p class="model-select-hint" id="modelHint">Highest accuracy — recommended for most cases.</p>
+      </div>
+
+      <!-- Source Tabs: Upload vs Camera -->
+      <div class="source-tabs">
+        <button class="source-tab active" id="tabUpload" data-mode="upload" type="button">📁 Upload Photo</button>
+        <button class="source-tab" id="tabCamera" data-mode="camera" type="button">📷 Use Camera</button>
+      </div>
+
+      <!-- Upload Source -->
+      <div class="source-panel" id="uploadSourcePanel">
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-icon">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <rect x="4" y="4" width="40" height="40" rx="8" fill="#1e3d1e" stroke="#4a7c59" stroke-width="1.5" stroke-dasharray="5 3"/>
+              <path d="M24 14v14M17 21l7-7 7 7" stroke="#a8d5b5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 34h20" stroke="#4a7c59" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <p class="drop-title">Drag & drop leaf photo</p>
+          <p class="drop-sub">or click to browse</p>
+          <input type="file" id="fileInput" accept="image/*" hidden />
+        </div>
+      </div>
+
+      <!-- Camera Source -->
+      <div class="source-panel" id="cameraSourcePanel" style="display:none;">
+        <div class="camera-view" id="cameraView">
+          <video id="cameraVideo" autoplay playsinline muted></video>
+          <div class="camera-frame-guide" id="cameraFrameGuide"></div>
+          <p class="camera-status" id="cameraStatus">Position the leaf in frame</p>
+          <p class="camera-error" id="cameraError" style="display:none;"></p>
+        </div>
+        <div class="camera-controls">
+          <button class="btn-camera-action" id="switchCameraBtn" type="button" title="Switch camera">⟲</button>
+          <button class="btn-capture" id="captureBtn" type="button" title="Capture photo"></button>
+          <button class="btn-camera-action" id="retryCameraBtn" type="button" title="Retry camera" style="display:none;">↻</button>
+        </div>
+        <label class="auto-capture-toggle">
+          <input type="checkbox" id="autoCaptureToggle" checked />
+          <span>Auto-capture when the image is sharp & well-lit</span>
+        </label>
+      </div>
+
+      <canvas id="captureCanvas" style="display:none;"></canvas>
+
+      <!-- Preview -->
+      <div class="image-preview" id="imagePreview" style="display:none;">
+        <img id="previewImg" src="" alt="Uploaded leaf" />
+        <div class="scan-bar" id="scanBar"></div>
+        <button class="btn-clear" id="clearBtn">✕ Remove</button>
+      </div>
+
+      <!-- Analyze Button -->
+      <button class="btn-analyze" id="analyzeBtn" disabled>
+        <span class="btn-text">Analyze Plant</span>
+        <span class="btn-icon">→</span>
+      </button>
+
+      <p class="upload-hint">Supported: JPG, PNG, WEBP · Max 16MB</p>
+    </section>
+
+    <!-- Right: Results Panel -->
+    <section class="panel panel-results" id="resultsPanel">
+      <div class="panel-label">02 — Diagnosis Report</div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🌿</div>
+        <p>Your diagnosis will appear here after analysis.</p>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" id="loadingState" style="display:none;">
+        <div class="leaf-spinner">
+          <div class="spinner-leaf"></div>
+        </div>
+        <p class="loading-text">Scanning leaf tissue…</p>
+        <div class="loading-steps">
+          <span class="step active" id="step1">Processing image</span>
+          <span class="step" id="step2">Running <span id="loadingModelName">EfficientNetB0</span></span>
+          <span class="step" id="step3">Fetching treatment</span>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="result-content" id="resultContent" style="display:none;">
+
+        <!-- Disease Header -->
+        <div class="result-header">
+          <div class="result-thumbnail">
+            <img id="resultThumb" src="" alt="Analyzed leaf" />
+          </div>
+          <div class="result-meta">
+            <p class="result-eyebrow">Detected Condition</p>
+            <h2 class="result-disease" id="diseaseName">—</h2>
+            <p class="result-model-used">Diagnosed using <strong id="resultModelName">—</strong></p>
+            <div class="confidence-bar-wrap">
+              <div class="confidence-bar">
+                <div class="confidence-fill" id="confidenceFill"></div>
+              </div>
+              <span class="confidence-label" id="confidenceLabel">—</span>
+            </div>
+            <div class="severity-badge" id="severityBadge">—</div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="result-section">
+          <h3 class="section-title">About this Disease</h3>
+          <p class="section-body" id="descriptionText">—</p>
+        </div>
+
+        <!-- Symptoms -->
+        <div class="result-section" id="symptomsSection">
+          <h3 class="section-title">Symptoms to Look For</h3>
+          <ul class="result-list" id="symptomsList"></ul>
+        </div>
+
+        <!-- Treatment -->
+        <div class="result-section treatment-highlight">
+          <h3 class="section-title">Recommended Treatment</h3>
+          <ul class="result-list result-list--treatment" id="treatmentList"></ul>
+        </div>
+
+        <!-- Prevention -->
+        <div class="result-section">
+          <h3 class="section-title">Prevention Tips</h3>
+          <ul class="result-list" id="preventionList"></ul>
+        </div>
+
+        <!-- Actions -->
+        <div class="result-actions">
+          <button class="btn-secondary" id="newScanBtn">← New Scan</button>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────────────── -->
+  <footer class="site-footer">
+    <p>PlantScan AI uses transfer-learning CNNs (EfficientNetB0 / MobileNetV2) for disease classification. Always consult an agricultural expert for critical decisions.</p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
